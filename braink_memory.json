@@ -1,0 +1,51 @@
+[
+  {
+    "id": 1788190321882,
+    "session_id": "session_alpha_1",
+    "role": "user",
+    "text": "hi",
+    "timestamp": "2026-08-31T15:32:01.882Z"
+  },
+  {
+    "id": 1788190990445,
+    "session_id": "session_alpha_1",
+    "role": "user",
+    "text": "hi",
+    "timestamp": "2026-08-31T15:43:10.445Z"
+  },
+  {
+    "id": 1788191060477,
+    "session_id": "session_alpha_1",
+    "role": "model",
+    "text": "`[BRAINK SYSTEM ONLINE]`\nStatus: Operational.\nAwaiting query.",
+    "timestamp": "2026-08-31T15:44:20.477Z"
+  },
+  {
+    "id": 1788191756049,
+    "session_id": "test",
+    "role": "user",
+    "text": "hello",
+    "timestamp": "2026-08-31T15:55:56.049Z"
+  },
+  {
+    "id": 1788191759571,
+    "session_id": "test",
+    "role": "model",
+    "text": "BRAINK console active. State your query.",
+    "timestamp": "2026-08-31T15:55:59.571Z"
+  },
+  {
+    "id": 1788195309964,
+    "session_id": "test2",
+    "role": "user",
+    "text": "hello",
+    "timestamp": "2026-08-31T16:55:09.964Z"
+  },
+  {
+    "id": 1788195314110,
+    "session_id": "test2",
+    "role": "model",
+    "text": "Hello there! I'm BRAINK. \n\nSystems are running smoothly and I'm ready to help you out. Whether you want to dive into a complex technical problem, explore a fascinating concept, write some code, or just chat through an idea, I'm all ears. \n\nWhat's on your mind today?",
+    "timestamp": "2026-08-31T16:55:14.110Z"
+  }
+]

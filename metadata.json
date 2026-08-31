@@ -1,0 +1,6 @@
+{
+  "name": "BRAINK Console",
+  "description": "Multi-Tenant Agentic Runtime Infrastructure with AI Chat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
