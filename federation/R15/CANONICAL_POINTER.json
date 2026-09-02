@@ -1,0 +1,7 @@
+{
+  "schema":"braink.beta.federation-pointer/v1",
+  "canonical":"aboudykeddeh276-stack/BRAINK",
+  "federation_release":"R15",
+  "runtime":"runtime://braink/sector-federation",
+  "rule":"beta consumes canonical federation; it does not fork sector source"
+}
