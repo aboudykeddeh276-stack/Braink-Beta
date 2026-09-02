@@ -1,0 +1,11 @@
+{
+  "schema":"keddeh.systems.replica-binding.r22/v1",
+  "replica":"aboudykeddeh276-stack/Braink-Beta",
+  "canonical":"aboudykeddeh276-stack/BRAINK",
+  "canonical_descriptor":"deployment/KEDDEH_SYSTEMS_R22_OPERATIONAL_FOUNDRIES.json",
+  "mode":"HYDRATE_FROM_CANONICAL",
+  "authority":"CANONICAL_BRAINK",
+  "state_root":"072a10a26e4158ebc60d1c179941b8b3013d9d04e8d8f65ab3ab8dba4f96d17e",
+  "virtual_space":"/KEDDEH_SYSTEMS/FOUNDRIES/R22_OPERATIONAL",
+  "local_override_policy":"NO_FOUNDRY_TRUTH_OVERRIDE"
+}
