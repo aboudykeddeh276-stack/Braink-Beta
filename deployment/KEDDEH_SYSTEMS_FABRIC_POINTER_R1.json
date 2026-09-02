@@ -1,0 +1,11 @@
+{
+  "schema": "keddeh.systems.fabric-pointer.r1",
+  "repository_role": "BRAINK_BETA_REPLICA",
+  "canonical_repository": "aboudykeddeh276-stack/BRAINK",
+  "runtime_manifest": "deployment/KEDDEH_SYSTEMS_RUNTIME_ACTIVE_R1.json",
+  "genome_root": "enterprise/genome/",
+  "research_root": "enterprise/research/",
+  "authority": "KEDDEH_SYSTEMS/BRAINK",
+  "replication_mode": "RESOLVE_CANONICAL_THEN_CONFIGURE_LOCAL",
+  "external_host_binding": "UNBOUND"
+}
