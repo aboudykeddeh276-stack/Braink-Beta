@@ -1,0 +1,9 @@
+{
+  "schema":"keddeh.systems.replica-binding.r18/v1",
+  "replica":"aboudykeddeh276-stack/Braink-Beta",
+  "canonical":"aboudykeddeh276-stack/BRAINK",
+  "canonical_descriptor":"deployment/KEDDEH_SYSTEMS_R18_PRODUCTION.json",
+  "mode":"HYDRATE_FROM_CANONICAL",
+  "authority":"CANONICAL_BRAINK",
+  "local_override_policy":"NO_BINDING_TRUTH_OVERRIDE"
+}
