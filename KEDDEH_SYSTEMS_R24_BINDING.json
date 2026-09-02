@@ -1,0 +1,10 @@
+{
+  "schema":"keddeh.systems.replica-binding.r24/v1",
+  "replica":"aboudykeddeh276-stack/Braink-Beta",
+  "canonical":"aboudykeddeh276-stack/BRAINK",
+  "descriptor":"deployment/KEDDEH_SYSTEMS_R24_MARKET_SERVICE_FABRIC.json",
+  "runtime":"enterprise/market/service_fabric_r24.py",
+  "api":"enterprise/market/http_api_r24.py",
+  "mode":"HYDRATE_FROM_CANONICAL",
+  "local_override_policy":"NO_BINDING_TRUTH_OVERRIDE"
+}
