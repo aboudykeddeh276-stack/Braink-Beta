@@ -1,0 +1,8 @@
+{
+  "schema":"braink.substrate-binding.v1",
+  "canonical_code":"aboudykeddeh276-stack/BRAINK:enterprise/market_services",
+  "role":"staging_and_preproduction_surface",
+  "mount":"KEX://STAGING/MARKET-SERVICES",
+  "owns":["candidate_runtime_validation","staging_receipts","preproduction_observer_state"],
+  "does_not_own":["production_code_authority"]
+}
