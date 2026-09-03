@@ -14,8 +14,12 @@ Nothing here fakes an actuator for a console-only setting.
 Every mutation goes through one transaction model, implemented in
 ``runtime.ControlPlaneRuntime``::
 
-    INTENT -> PRE OBSERVE -> CANDIDATE STATE -> DELTA -> ADMISSION
-    -> (APPROVAL) -> ACTUATOR -> POST OBSERVE -> VERIFY -> RECEIPT
+    INTENT -> ADMISSION -> (APPROVAL) -> PRE OBSERVE -> CANDIDATE STATE
+    -> DELTA -> ACTUATOR -> POST OBSERVE -> VERIFY -> RECEIPT
+
+Admission runs before any privileged read, so an actor who isn't
+authorized for a capability never causes a read against the target
+resource and never learns whether it exists.
 
 This is the R1 milestone: canonical user model, Observer(2), admission
 gate, a Directory adapter (Google-backed and in-memory), verification,

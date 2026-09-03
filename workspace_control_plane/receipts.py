@@ -41,6 +41,10 @@ class Receipt:
     after_state_hash: str
     converged: bool
     unexpected_fields: tuple[str, ...] = ()
+    # Post-conditions the capability declares (capability_registry) that this
+    # milestone has no actuator/check for yet. Never silently treated as
+    # verified: a receipt only claims "converged", not that these hold.
+    unverified_post_conditions: tuple[str, ...] = ()
     issued_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict:
@@ -54,5 +58,6 @@ class Receipt:
             "after_state_hash": self.after_state_hash,
             "converged": self.converged,
             "unexpected_fields": list(self.unexpected_fields),
+            "unverified_post_conditions": list(self.unverified_post_conditions),
             "issued_at": self.issued_at,
         }

@@ -44,16 +44,52 @@ def test_destructive_capability_without_approval_is_held():
     gate = AdmissionGate(build_default_registry())
     actor = Actor(email="admin@example.com", granted_scopes=frozenset({USER_SCOPE}), is_delegated_admin=True)
 
-    decision = gate.admit("identity.user.delete", actor, approval_granted=False)
+    decision = gate.admit("identity.user.delete", actor, approvers=frozenset())
 
     assert decision.approval_satisfied is False
     assert "two_person" in decision.reason
 
 
-def test_destructive_capability_with_approval_is_admitted():
+def test_destructive_capability_with_one_approver_is_still_held():
+    # TWO_PERSON means two DISTINCT approvers, not "approved once".
     gate = AdmissionGate(build_default_registry())
     actor = Actor(email="admin@example.com", granted_scopes=frozenset({USER_SCOPE}), is_delegated_admin=True)
 
-    decision = gate.admit("identity.user.delete", actor, approval_granted=True)
+    decision = gate.admit("identity.user.delete", actor, approvers=frozenset({"approver-a@example.com"}))
+
+    assert decision.approval_satisfied is False
+
+
+def test_destructive_capability_self_approval_does_not_count():
+    # The requesting actor approving their own request doesn't satisfy
+    # two-person approval, even alongside one other real approver.
+    gate = AdmissionGate(build_default_registry())
+    actor = Actor(email="admin@example.com", granted_scopes=frozenset({USER_SCOPE}), is_delegated_admin=True)
+
+    decision = gate.admit(
+        "identity.user.delete", actor, approvers=frozenset({actor.email, "approver-a@example.com"})
+    )
+
+    assert decision.approval_satisfied is False
+
+
+def test_destructive_capability_with_two_distinct_approvers_is_admitted():
+    gate = AdmissionGate(build_default_registry())
+    actor = Actor(email="admin@example.com", granted_scopes=frozenset({USER_SCOPE}), is_delegated_admin=True)
+
+    decision = gate.admit(
+        "identity.user.delete",
+        actor,
+        approvers=frozenset({"approver-a@example.com", "approver-b@example.com"}),
+    )
+
+    assert decision.approval_satisfied is True
+
+
+def test_write_scope_satisfies_readonly_requirement():
+    gate = AdmissionGate(build_default_registry())
+    actor = Actor(email="admin@example.com", granted_scopes=frozenset({USER_SCOPE}), is_delegated_admin=True)
+
+    decision = gate.admit("identity.user.read", actor)
 
     assert decision.approval_satisfied is True

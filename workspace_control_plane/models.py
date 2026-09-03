@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ResourceKind(str, Enum):
@@ -38,6 +38,17 @@ class CanonicalUser(BaseModel):
     is_admin: bool = False
     suspended: bool = False
     aliases: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _derive_state_from_suspension(self) -> "CanonicalUser":
+        # `suspended` and `state` describe the same account status; keep them
+        # in sync so callers can't produce e.g. an ACTIVE-but-suspended user.
+        # ARCHIVED is a distinct lifecycle stage and is left untouched here.
+        if self.suspended and self.state == UserState.ACTIVE:
+            self.state = UserState.SUSPENDED
+        elif not self.suspended and self.state == UserState.SUSPENDED:
+            self.state = UserState.ACTIVE
+        return self
 
 
 class CanonicalGroup(BaseModel):

@@ -55,27 +55,101 @@ def test_destructive_capability_without_approval_blocks_mutation():
     intent = UserMutationIntent(
         capability="identity.user.delete",
         primary_email="user@example.com",
-        desired_changes={"suspended": True},
+        desired_changes={},
     )
 
     with pytest.raises(ApprovalRequiredError):
-        runtime.execute_user_mutation(intent, _admin_actor(), approval_granted=False)
+        runtime.execute_user_mutation(intent, _admin_actor(), approvers=frozenset())
 
-    assert directory.get_user("user@example.com").suspended is False
+    assert directory.get_user("user@example.com") is not None
 
 
-def test_destructive_capability_with_approval_proceeds():
+def test_destructive_capability_with_two_distinct_approvers_proceeds():
     runtime, directory = _runtime_with_user()
+    intent = UserMutationIntent(
+        capability="identity.user.delete",
+        primary_email="user@example.com",
+        desired_changes={},
+    )
+
+    receipt = runtime.execute_user_mutation(
+        intent,
+        _admin_actor(),
+        approvers=frozenset({"approver-a@example.com", "approver-b@example.com"}),
+    )
+
+    assert receipt.converged is True
+    assert directory.get_user("user@example.com") is None
+    # user_absent is checked for real; the rest (data disposition, licensing)
+    # has no actuator in this milestone and must not be claimed as verified.
+    assert set(receipt.unverified_post_conditions) == {
+        "owned_data_disposition_verified",
+        "licenses_reconciled",
+    }
+
+
+def test_delete_rejects_desired_changes():
+    runtime, _ = _runtime_with_user()
     intent = UserMutationIntent(
         capability="identity.user.delete",
         primary_email="user@example.com",
         desired_changes={"suspended": True},
     )
 
-    receipt = runtime.execute_user_mutation(intent, _admin_actor(), approval_granted=True)
+    with pytest.raises(ValueError):
+        runtime.execute_user_mutation(
+            intent,
+            _admin_actor(),
+            approvers=frozenset({"approver-a@example.com", "approver-b@example.com"}),
+        )
+
+
+def test_suspend_dispatches_to_suspend_actuator():
+    runtime, directory = _runtime_with_user()
+    intent = UserMutationIntent(
+        capability="identity.user.suspend",
+        primary_email="user@example.com",
+        desired_changes={},
+    )
+
+    receipt = runtime.execute_user_mutation(intent, _admin_actor(), approvers=frozenset({"approver-a@example.com"}))
 
     assert receipt.converged is True
-    assert directory.get_user("user@example.com").suspended is True
+    updated = directory.get_user("user@example.com")
+    assert updated.suspended is True
+    assert updated.state.value == "suspended"
+
+
+def test_read_only_capability_cannot_be_used_for_mutation():
+    runtime, _ = _runtime_with_user()
+    intent = UserMutationIntent(
+        capability="identity.user.read",
+        primary_email="user@example.com",
+        desired_changes={"given_name": "Should Not Apply"},
+    )
+
+    with pytest.raises(UnsupportedCapabilityError):
+        runtime.execute_user_mutation(intent, _admin_actor())
+
+
+def test_unauthorized_actor_never_reaches_pre_observe():
+    directory = InMemoryDirectoryAdapter()
+    reads: list[str] = []
+    original_get_user = directory.get_user
+    directory.get_user = lambda email: (reads.append(email), original_get_user(email))[1]  # type: ignore[method-assign]
+    directory.seed(CanonicalUser(primary_email="user@example.com"))
+    runtime = ControlPlaneRuntime(build_default_registry(), directory)
+    unauthorized_actor = Actor(email="nobody@example.com", granted_scopes=frozenset(), is_delegated_admin=False)
+    intent = UserMutationIntent(
+        capability="identity.user.update",
+        primary_email="user@example.com",
+        desired_changes={"given_name": "X"},
+    )
+
+    with pytest.raises(Exception):
+        runtime.execute_user_mutation(intent, unauthorized_actor)
+
+    assert reads == []
 
 
 def test_console_only_capability_never_reaches_actuator():
@@ -92,7 +166,7 @@ def test_console_only_capability_never_reaches_actuator():
     assert directory.get_user("user@example.com").given_name == "Original"
 
 
-def test_mutation_of_unknown_user_raises_before_admission():
+def test_mutation_of_unknown_user_raises_keyerror_after_admission_succeeds():
     runtime, _ = _runtime_with_user()
     intent = UserMutationIntent(
         capability="identity.user.update",
