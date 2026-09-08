@@ -21,6 +21,7 @@ from keddeh_math.search_partition import (
 from keddeh_math.shannon import channel_capacity_bps as _channel_capacity_bps
 
 from braink_reasoning.registers.compounds import get_compound as _get_compound
+from braink_reasoning.registers.concept_index import get_concept_tags as _get_concept_tags
 from braink_reasoning.registers.lexicon import get_term as _get_term
 from braink_reasoning.registers.periodic_table import get_element as _get_element
 from braink_reasoning.registry import TopicHandler, TopicRegistry, TopicStatus
@@ -114,6 +115,18 @@ def build_default_registry() -> TopicRegistry:
             function=_get_term,
             status=TopicStatus.VERIFIED,
             description="Look up a project glossary term (agent/asset/node names).",
+            required_params=("term",),
+        )
+    )
+    registry.register(
+        TopicHandler(
+            topic="lexicon.concept_tags",
+            function=_get_concept_tags,
+            status=TopicStatus.VERIFIED,
+            description=(
+                "Look up a word's concept tags from the LIVE_LEXICON semantic index "
+                "(v18, hash-chained history) -- distinct from lexicon.term's project glossary."
+            ),
             required_params=("term",),
         )
     )
