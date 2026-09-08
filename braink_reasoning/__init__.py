@@ -14,6 +14,13 @@ verified computation, and is designed to be extended, not locked down.
 """
 
 from braink_reasoning.answer import TopicAnswer, ask
+from braink_reasoning.chain import (
+    Chain,
+    ChainExecutionResult,
+    ChainStep,
+    StepReceipt,
+    verify_receipt_chain,
+)
 from braink_reasoning.graph import CircularReferenceError, resolve_understanding_path
 from braink_reasoning.registry import TopicHandler, TopicRegistry, TopicStatus, UnknownTopicError
 from braink_reasoning.topics import build_default_registry
@@ -28,4 +35,9 @@ __all__ = [
     "build_default_registry",
     "resolve_understanding_path",
     "CircularReferenceError",
+    "Chain",
+    "ChainStep",
+    "ChainExecutionResult",
+    "StepReceipt",
+    "verify_receipt_chain",
 ]
