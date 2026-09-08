@@ -1,6 +1,7 @@
 import pytest
 
 from braink_reasoning.answer import ask
+from braink_reasoning.graph import resolve_understanding_path
 from braink_reasoning.registry import TopicStatus
 from braink_reasoning.topics import build_default_registry
 
@@ -14,8 +15,36 @@ def test_default_registry_includes_expected_topics():
         "bit_erasure_power",
         "rule110_generations",
         "composite_warrant",
+        "periodic_table.element",
+        "chemistry.compound",
+        "lexicon.term",
     }
     assert expected.issubset(set(registry.topics()))
+
+
+def test_periodic_table_topic_computes_a_real_lookup():
+    registry = build_default_registry()
+    answer = ask(registry, "periodic_table.element", identifier="Au")
+    assert answer.status == TopicStatus.VERIFIED
+    assert answer.result["name"] == "Gold"
+
+
+def test_chemistry_compound_topic_returns_transcribed_data():
+    registry = build_default_registry()
+    answer = ask(registry, "chemistry.compound", name="water")
+    assert answer.result["formula"] == "H2O"
+
+
+def test_lexicon_topic_returns_glossary_entry():
+    registry = build_default_registry()
+    answer = ask(registry, "lexicon.term", term="Lexicon Agent")
+    assert answer.result["node_code"] == "N-L1-006"
+
+
+def test_compound_topic_declares_a_real_prerequisite_on_periodic_table():
+    registry = build_default_registry()
+    path = resolve_understanding_path(registry, "chemistry.compound")
+    assert path == ["periodic_table.element", "chemistry.compound"]
 
 
 def test_collision_probability_topic_computes_a_real_value():

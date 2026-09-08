@@ -1,12 +1,12 @@
-"""Default topic registrations wrapping keddeh_math's verified computations.
+"""Default topic registrations: keddeh_math's computed functions plus the
+data registers (periodic table, chemistry compounds, project lexicon).
 
-This is the first register in the system: six topics, each backed
-directly by a tested function in `keddeh_math`. Future registers (a
-lexicon, a manuscript-derived register, etc.) are added the same way --
-build a `TopicRegistry`, call `.register(...)` with real callables, and
-merge it into whatever registry `ask()` is called against. Nothing here
-is a placeholder or a stub function; every handler is the same code
-exercised by `keddeh_math`'s test suite.
+Six topics are backed directly by tested functions in `keddeh_math`, and
+three more by literal lookup data in `braink_reasoning.registers`. More
+registers are added the same way -- build a `TopicRegistry`, call
+`.register(...)` with real callables, and merge it into whatever
+registry `ask()` is called against. Nothing here is a placeholder or a
+stub function.
 """
 
 from __future__ import annotations
@@ -20,6 +20,9 @@ from keddeh_math.search_partition import (
 )
 from keddeh_math.shannon import channel_capacity_bps as _channel_capacity_bps
 
+from braink_reasoning.registers.compounds import get_compound as _get_compound
+from braink_reasoning.registers.lexicon import get_term as _get_term
+from braink_reasoning.registers.periodic_table import get_element as _get_element
 from braink_reasoning.registry import TopicHandler, TopicRegistry, TopicStatus
 
 
@@ -81,6 +84,37 @@ def build_default_registry() -> TopicRegistry:
             status=TopicStatus.VERIFIED,
             description="Q32.32 fixed-point composite warrant across independent witnesses.",
             required_params=("warrants",),
+        )
+    )
+    registry.register(
+        TopicHandler(
+            topic="periodic_table.element",
+            function=_get_element,
+            status=TopicStatus.VERIFIED,
+            description="Look up an element by symbol, name, or atomic number (standard IUPAC data).",
+            required_params=("identifier",),
+        )
+    )
+    registry.register(
+        TopicHandler(
+            topic="chemistry.compound",
+            function=_get_compound,
+            status=TopicStatus.VERIFIED,
+            description=(
+                "Look up a compound by English slug (e.g. 'water', 'sulfuric_acid'); "
+                "transcribed from the user's source spreadsheet."
+            ),
+            required_params=("name",),
+            references=("periodic_table.element",),
+        )
+    )
+    registry.register(
+        TopicHandler(
+            topic="lexicon.term",
+            function=_get_term,
+            status=TopicStatus.VERIFIED,
+            description="Look up a project glossary term (agent/asset/node names).",
+            required_params=("term",),
         )
     )
 
