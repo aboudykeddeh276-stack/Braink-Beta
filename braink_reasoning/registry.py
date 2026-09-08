@@ -33,6 +33,7 @@ class TopicHandler:
     status: TopicStatus
     description: str
     required_params: tuple[str, ...]
+    references: tuple[str, ...] = ()  # other topics needed to understand this one
 
 
 class UnknownTopicError(KeyError):
