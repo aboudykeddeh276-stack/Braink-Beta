@@ -22,6 +22,13 @@ from braink_reasoning.chain import (
     verify_receipt_chain,
 )
 from braink_reasoning.graph import CircularReferenceError, resolve_understanding_path
+from braink_reasoning.learning_log import (
+    LearningLog,
+    LogEntry,
+    logged_ask,
+    logged_register,
+    verify_log_chain,
+)
 from braink_reasoning.registry import TopicHandler, TopicRegistry, TopicStatus, UnknownTopicError
 from braink_reasoning.topics import build_default_registry
 
@@ -40,4 +47,9 @@ __all__ = [
     "ChainExecutionResult",
     "StepReceipt",
     "verify_receipt_chain",
+    "LearningLog",
+    "LogEntry",
+    "logged_ask",
+    "logged_register",
+    "verify_log_chain",
 ]
