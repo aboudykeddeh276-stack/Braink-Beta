@@ -20,6 +20,10 @@ This is a real technical fork, not busywork:
 2. **If pursued as real OCR/CV**: scope a minimal version first — e.g., given a rendered image of a known, small character set (not an open-ended screen), extract the characters correctly and prove it against a held-out test image, before generalizing. Use an existing, well-tested library rather than hand-rolling pixel classification.
 3. **If pursued as structured extraction** (the "screen" is always a canvas/grid the system already has structured access to, so no actual image processing is needed): this is much closer to what `braink_reasoning`'s existing registers already do — the "reading" is really just a new topic/register over already-structured data, not a vision problem at all. Confirm which case this is before writing any code, since building CV machinery for a problem that's actually structured-data lookup would be pure waste.
 
+## Braink constraint check
+
+Structured extraction (case 3 above) fits the Braink answer-path constraint directly: it's a new register/topic over already-structured data, no generation involved. Real OCR/CV (case 2) also fits *if* its output is a discrete, storable value (extracted characters/state) that becomes a register lookup — it does not fit if "reading the screen" ends up meaning "have a model describe what's on the screen in prose" at answer time. Whichever case this turns out to be, keep the boundary where `CLAUDE.md` draws it: extraction/computation, not narration.
+
 ## Done criteria
 
 - A decision is recorded (built, or explicitly shelved) — not left ambiguous.

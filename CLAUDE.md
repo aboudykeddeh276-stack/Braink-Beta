@@ -1,5 +1,13 @@
 # Working notes for this repository
 
+## What Braink actually is (the constraint on everything below)
+
+Established directly by the project owner, verbatim: **"Braink is going to be a digital virtual brain. not an ai. not an llm."** It answers a topic "based on technical data available and logical mathematically verified history," it "will apply maths rather than spit out tokenised stories," and it is explicitly **"not going to respond using tokenisation or set terms."**
+
+This is not a slogan — it's a gate every expansion has to pass. Concretely: **Braink's answer path is `TopicRegistry` + `ask()` + real computation or lookup, full stop.** Something belongs to Braink proper only if, at query time, it either (a) executes a tested function and returns its actual result, or (b) looks up a value in a register that's either objective fact or transcribed from a real source. If a capability's answer at query time comes from a language model generating plausible text, it is not Braink — it's either a different tool entirely, or at most a data-*preparation* step whose output becomes a verified/tagged register value before Braink ever touches it. An LLM (including this one) is allowed to help *build* Braink's registers and code; it must never be *how Braink answers*.
+
+Before adding anything to `ROADMAP.md` or `docs/workplans/`, check it against this. If it fails the check, it's out of scope for this repo's definition of Braink, whatever else it might be worth building.
+
 Read `SYSTEM_INVENTORY.md` before building anything new in this repo. It lists what packages, Drive folders, and documents have actually been opened and verified, and what they actually contain — check it so you don't rebuild something that already exists, or trust a claim that turned out to be decorative.
 
 ## Context that shapes how to work here

@@ -31,4 +31,10 @@ This is the master list of workplans for Braink/KEX/IL-LLM: what's done, what's 
 
 ## Adding a new workplan
 
-Copy the shape of `docs/workplans/01-*.md`: a "Why this exists" section grounded in something specific (a file, a PR, a conversation finding — not a vague direction), numbered steps, and a "Done criteria" section that's actually checkable. Add a row to the table above. If it turns out to be speculative once written down — no concrete steps, no way to know when it's done — that's a sign it isn't a workplan yet, just a direction; note it in `SYSTEM_INVENTORY.md` instead and revisit once it's concrete.
+Copy the shape of `docs/workplans/01-*.md`: a "Why this exists" section grounded in something specific (a file, a PR, a conversation finding — not a vague direction), numbered steps, a **"Braink constraint check"** section, and a "Done criteria" section that's actually checkable. Add a row to the table above. If it turns out to be speculative once written down — no concrete steps, no way to know when it's done — that's a sign it isn't a workplan yet, just a direction; note it in `SYSTEM_INVENTORY.md` instead and revisit once it's concrete.
+
+The constraint check is not optional: state plainly whether the work being planned fits `CLAUDE.md`'s definition of Braink (answers by computation/lookup, never by generating text at query time) or sits outside it as a separate tool/data-prep step. A workplan that fails the check isn't necessarily worthless — it just isn't Braink, and shouldn't be wired into `braink_reasoning`'s `TopicRegistry` as if it were.
+
+## Autonomy note
+
+Workplans with no open decision (currently: 01) can be executed without checking in first — that's the point of writing them down concretely enough to act on. Workplans blocked on a decision only the project owner can make (currently: 02, 03) stay blocked until that answer arrives; "proceed anyway" on those means guessing at intent, which this file exists to avoid, not enable.

@@ -20,6 +20,10 @@ Leaving these unread risks the exact failure mode this session already hit once:
 5. **Port only what's real and non-duplicate**, following the PR #4 pattern exactly: copy source, add a test suite (none will exist, per the pattern seen twice already), fix any integrity gaps the same way `ledger.py`'s hash-chaining gap was fixed, verify end-to-end with the real CLI/entry point (not just mocked unit tests), commit, open a PR.
 6. **Update `SYSTEM_INVENTORY.md`** with the folder's true contents whether or not anything gets ported, so the "unknown" status in the current table is resolved either way.
 
+## Braink constraint check
+
+This workplan is about discovering and porting existing code, not about Braink's answer path directly — but step 5 ("port only what's real and non-duplicate") also means: **do not port anything whose actual mechanism is generating text via a language model call at answer time.** If `contradiction_linker.py`, `akih.py`, or anything else in these folders turns out to work that way, it can still be ported as a standalone tool, but it does not get wired into `braink_reasoning`'s `TopicRegistry` as if it were a Braink capability. Note it as "found, not Braink-eligible" in `SYSTEM_INVENTORY.md` rather than silently registering it as a topic.
+
 ## Done criteria
 
 - Both folders have a row in `SYSTEM_INVENTORY.md` describing actual (not assumed) contents.
