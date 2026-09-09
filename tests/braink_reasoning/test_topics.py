@@ -18,6 +18,7 @@ def test_default_registry_includes_expected_topics():
         "periodic_table.element",
         "chemistry.compound",
         "lexicon.term",
+        "screen.read_text",
     }
     assert expected.issubset(set(registry.topics()))
 
@@ -88,3 +89,19 @@ def test_rule110_generations_topic_computes_real_ca_steps():
     registry = build_default_registry()
     answer = ask(registry, "rule110_generations", initial_state=[0, 0, 1, 0, 0], generations=1)
     assert answer.result[1] == [0, 1, 1, 0, 0]
+
+
+def test_screen_read_text_topic_extracts_real_text(tmp_path):
+    from PIL import Image, ImageDraw, ImageFont
+
+    image = Image.new("RGB", (400, 80), color="white")
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
+    draw.text((10, 20), "Topic Test", fill="black", font=font)
+    path = tmp_path / "topic_test.png"
+    image.save(path)
+
+    registry = build_default_registry()
+    answer = ask(registry, "screen.read_text", image_path=str(path))
+    assert answer.status == TopicStatus.VERIFIED
+    assert "Topic" in answer.result["text"]

@@ -24,6 +24,7 @@ from braink_reasoning.registers.compounds import get_compound as _get_compound
 from braink_reasoning.registers.concept_index import get_concept_tags as _get_concept_tags
 from braink_reasoning.registers.lexicon import get_term as _get_term
 from braink_reasoning.registers.periodic_table import get_element as _get_element
+from braink_reasoning.registers.screen_reader import read_text_from_image as _read_text_from_image
 from braink_reasoning.registry import TopicHandler, TopicRegistry, TopicStatus
 
 
@@ -128,6 +129,18 @@ def build_default_registry() -> TopicRegistry:
                 "(v18, hash-chained history) -- distinct from lexicon.term's project glossary."
             ),
             required_params=("term",),
+        )
+    )
+    registry.register(
+        TopicHandler(
+            topic="screen.read_text",
+            function=_read_text_from_image,
+            status=TopicStatus.VERIFIED,
+            description=(
+                "Extract text from an image via Tesseract OCR (real computer vision, not a "
+                "model narrating the image). Returns extracted text plus per-word confidence."
+            ),
+            required_params=("image_path",),
         )
     )
 
