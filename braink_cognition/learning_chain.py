@@ -13,21 +13,26 @@ assumed honest.
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass, field
-from typing import Callable
-
-
-def _always_true() -> bool:
-    return True
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class CandidateDelta:
-    """A proposed change, with an explicit contract to check it against."""
+    """A proposed change, and the contract results already observed for it.
+
+    `precondition_held` / `postcondition_held` are booleans the caller
+    records at the moment each check actually happens — precondition
+    immediately before execution, postcondition immediately after — not
+    re-evaluated later against whatever state happens to exist when the
+    artifact is checked. A delta whose precondition depends on mutable
+    external state (e.g. "resource does not exist yet") would otherwise be
+    checked against the wrong state if a callable were re-invoked at
+    validation time instead of at its real execution boundary.
+    """
 
     description: str
-    precondition: Callable[[], bool] = field(default=_always_true)
-    postcondition: Callable[[], bool] = field(default=_always_true)
+    precondition_held: bool = True
+    postcondition_held: bool = True
 
 
 @dataclass(frozen=True)

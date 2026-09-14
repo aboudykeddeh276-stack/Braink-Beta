@@ -77,3 +77,15 @@ def test_disjoint_trees_have_no_common_ancestor():
     tree.add_root("mineral")
     with pytest.raises(ValueError):
         tree.lca("animal", "mineral")
+
+
+def test_get_returns_a_copy_not_the_internal_node():
+    # Mutating the returned node (e.g. reassigning .parent to a descendant,
+    # which would create a cycle) must not corrupt the tree's own state.
+    tree = _animal_tree()
+
+    returned = tree.get("dog")
+    returned.parent = "dog"  # would be a self-cycle if this reached the tree
+
+    assert tree.get("dog").parent == "mammal"
+    assert tree.depth("dog") == 2

@@ -10,6 +10,7 @@ tree root, rather than via floating-point embedding similarity.
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 
 
@@ -50,34 +51,45 @@ class LexicalTree:
     def __contains__(self, symbol: str) -> bool:
         return symbol in self._nodes
 
-    def get(self, symbol: str) -> LexicalNode:
+    def _get(self, symbol: str) -> LexicalNode:
+        """Internal accessor returning the LIVE node — never expose this
+        return value to callers outside the class; use `get()` instead.
+        """
         try:
             return self._nodes[symbol]
         except KeyError as exc:
             raise KeyError(f"no such lexical node: {symbol}") from exc
 
+    def get(self, symbol: str) -> LexicalNode:
+        """A defensive copy of the node. Mutating it (e.g. reassigning
+        `.parent`) cannot corrupt the tree or create a cycle, since the
+        tree never reads this object back — internal traversal uses its
+        own accessor.
+        """
+        return dataclasses.replace(self._get(symbol))
+
     def depth(self, symbol: str) -> int:
         """Distance from `symbol` up to its root. O(depth)."""
-        node = self.get(symbol)
+        node = self._get(symbol)
         d = 0
         while node.parent is not None:
-            node = self.get(node.parent)
+            node = self._get(node.parent)
             d += 1
         return d
 
     def ancestors(self, symbol: str) -> list[str]:
         """`symbol`'s ancestor chain, symbol first, root last. O(depth)."""
-        node = self.get(symbol)
+        node = self._get(symbol)
         chain = [symbol]
         while node.parent is not None:
             chain.append(node.parent)
-            node = self.get(node.parent)
+            node = self._get(node.parent)
         return chain
 
     def lca(self, x: str, y: str) -> str:
         """Lowest common ancestor of x and y. O(depth)."""
-        self.get(x)
-        self.get(y)
+        self._get(x)
+        self._get(y)
         x_ancestors = self.ancestors(x)
         y_ancestor_set = set(self.ancestors(y))
         for ancestor in x_ancestors:

@@ -10,6 +10,7 @@ property is enforced by the class's interface, not just documented.
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 
 from braink_cognition.learning_chain import LearningArtifact
@@ -26,16 +27,23 @@ class LedgerEntry:
 
 
 def _artifact_digest(artifact: LearningArtifact) -> str:
-    payload = "|".join(
+    # A canonical JSON array, not a plain "|".join(...): a "|" occurring
+    # inside a field's own text can never be confused with a field
+    # boundary, so two artifacts with different fields can't collide onto
+    # the same digest just because their text happens to concatenate the
+    # same way.
+    payload = json.dumps(
         [
             artifact.context_before,
             artifact.observation,
             artifact.hypothesis,
             artifact.candidate_delta.description,
-            str(artifact.execution.ran),
+            artifact.candidate_delta.precondition_held,
+            artifact.candidate_delta.postcondition_held,
+            artifact.execution.ran,
             artifact.execution.output,
-            str(artifact.test.total),
-            str(artifact.test.passed),
+            artifact.test.total,
+            artifact.test.passed,
             artifact.evidence.digest,
             artifact.context_after,
         ]
@@ -43,8 +51,10 @@ def _artifact_digest(artifact: LearningArtifact) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _chain_hash(previous_hash: str, artifact_digest: str) -> str:
-    return hashlib.sha256(f"{previous_hash}|{artifact_digest}".encode("utf-8")).hexdigest()
+def _chain_hash(previous_hash: str, sequence: int, artifact_digest: str) -> str:
+    # `sequence` is part of the hash so tampering with an entry's declared
+    # position, not just its content, is also caught by verify_chain().
+    return hashlib.sha256(f"{previous_hash}|{sequence}|{artifact_digest}".encode("utf-8")).hexdigest()
 
 
 class HistoricalLedger:
@@ -62,24 +72,30 @@ class HistoricalLedger:
 
     def append(self, artifact: LearningArtifact) -> LedgerEntry:
         digest = _artifact_digest(artifact)
+        sequence = len(self._entries)
         previous_hash = self._entries[-1].entry_hash if self._entries else _GENESIS_HASH
         entry = LedgerEntry(
-            sequence=len(self._entries),
+            sequence=sequence,
             artifact_digest=digest,
             previous_hash=previous_hash,
-            entry_hash=_chain_hash(previous_hash, digest),
+            entry_hash=_chain_hash(previous_hash, sequence, digest),
         )
         self._entries.append(entry)
         self._digests.add(digest)
         return entry
 
     def verify_chain(self) -> bool:
-        """Recompute the hash chain from scratch; detects any tampering."""
+        """Recompute the hash chain from scratch, including each entry's
+        declared position; detects tampering with content, ordering, or
+        the chain linkage itself.
+        """
         previous_hash = _GENESIS_HASH
-        for entry in self._entries:
+        for expected_sequence, entry in enumerate(self._entries):
+            if entry.sequence != expected_sequence:
+                return False
             if entry.previous_hash != previous_hash:
                 return False
-            if entry.entry_hash != _chain_hash(previous_hash, entry.artifact_digest):
+            if entry.entry_hash != _chain_hash(previous_hash, entry.sequence, entry.artifact_digest):
                 return False
             previous_hash = entry.entry_hash
         return True

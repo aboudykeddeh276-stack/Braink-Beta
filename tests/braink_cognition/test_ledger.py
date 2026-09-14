@@ -79,3 +79,83 @@ def test_chain_detects_tampering():
     tampered = dataclasses.replace(ledger._entries[1], artifact_digest="0" * 64)
     ledger._entries[1] = tampered
     assert ledger.verify_chain() is False
+
+
+def test_chain_detects_sequence_tampering():
+    # Tampering with an entry's declared POSITION, leaving its hashes
+    # otherwise untouched, must also be caught — not just content tampering.
+    ledger = HistoricalLedger()
+    ledger.append(_make_artifact("a"))
+    ledger.append(_make_artifact("b"))
+    tampered = dataclasses.replace(ledger._entries[1], sequence=99)
+    ledger._entries[1] = tampered
+    assert ledger.verify_chain() is False
+
+
+def test_artifacts_with_pipe_in_fields_are_not_confused():
+    # Regression for delimiter-ambiguity: "a|b" + "c" must not digest the
+    # same as "a" + "b|c" just because a naive "|".join would concatenate
+    # them identically.
+    ledger = HistoricalLedger()
+    execution = ExecutionResult(ran=True, output="out")
+    test = TestResult(total=1, passed=1)
+    evidence = Evidence.compute(execution, test)
+
+    artifact_1 = LearningArtifact(
+        context_before="a|b",
+        observation="c",
+        hypothesis="h",
+        candidate_delta=CandidateDelta(description="d"),
+        execution=execution,
+        test=test,
+        evidence=evidence,
+        context_after="x",
+    )
+    artifact_2 = LearningArtifact(
+        context_before="a",
+        observation="b|c",
+        hypothesis="h",
+        candidate_delta=CandidateDelta(description="d"),
+        execution=execution,
+        test=test,
+        evidence=evidence,
+        context_after="x",
+    )
+
+    ledger.append(artifact_1)
+    assert artifact_1 in ledger
+    assert artifact_2 not in ledger
+
+
+def test_artifacts_differing_only_in_contract_result_are_distinct():
+    # Regression for the "same description, different pre/postcondition
+    # outcome" collision: these must not be treated as the same artifact.
+    ledger = HistoricalLedger()
+    execution = ExecutionResult(ran=True, output="out")
+    test = TestResult(total=1, passed=1)
+    evidence = Evidence.compute(execution, test)
+
+    passed_delta = LearningArtifact(
+        context_before="C0",
+        observation="obs",
+        hypothesis="hyp",
+        candidate_delta=CandidateDelta(description="fix", precondition_held=True, postcondition_held=True),
+        execution=execution,
+        test=test,
+        evidence=evidence,
+        context_after="C1",
+    )
+    failed_delta = LearningArtifact(
+        context_before="C0",
+        observation="obs",
+        hypothesis="hyp",
+        candidate_delta=CandidateDelta(description="fix", precondition_held=True, postcondition_held=False),
+        execution=execution,
+        test=test,
+        evidence=evidence,
+        context_after="C1",
+    )
+
+    ledger.append(passed_delta)
+    assert passed_delta in ledger
+    assert failed_delta not in ledger
