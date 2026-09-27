@@ -1,0 +1,61 @@
+name: BrainK Fabric CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: braink-fabric-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-fabric:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Fabric lease/idempotency self-test
+        run: npm run test:fabric
+
+      - name: TypeScript verification
+        run: npm run lint
+
+      - name: Production build
+        run: npm run build
+
+      - name: Evidence manifest
+        if: always()
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const files = ['fabric-runtime.ts','server.ts','src/components/WorkloadOrchestrator.tsx','package.json'];
+          const evidence = {
+            run_id: process.env.GITHUB_RUN_ID,
+            sha: process.env.GITHUB_SHA,
+            generated_at: new Date().toISOString(),
+            files: Object.fromEntries(files.map(file => [file, crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')]))
+          };
+          fs.writeFileSync('braink-fabric-evidence.json', JSON.stringify(evidence, null, 2));
+          NODE
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: braink-fabric-evidence-${{ github.sha }}
+          path: braink-fabric-evidence.json
