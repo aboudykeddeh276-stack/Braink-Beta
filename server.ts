@@ -8,6 +8,7 @@ import fs from 'fs';
 import { exec } from 'child_process';
 import util from 'util';
 import os from 'os';
+import { BrainkExecutionFabric, FabricActuator } from './fabric-runtime';
 
 dotenv.config();
 
@@ -21,6 +22,8 @@ const ai = aiApiKey ? new GoogleGenAI({ apiKey: aiApiKey }) : null;
 
 app.use(cors());
 app.use(express.json());
+
+const executionFabric = new BrainkExecutionFabric();
 
 const dbPath = path.resolve(process.cwd(), 'braink_memory.json');
 const evolutionPath = path.resolve(process.cwd(), 'braink_evolution.json');
@@ -117,20 +120,21 @@ const updateEvolution: FunctionDeclaration = {
     }
 };
 
-const deployWorkload: FunctionDeclaration = {
-    name: 'deploy_workload',
-    description: 'Spin up a virtualized hardware environment or subsystem. Supported types: "linux" (Alpine Desktop), "android" (AOSP Subsystem), "browser" (Headless Chromium), "llm" (Local Inferencing Node).',
+const executeFabricAction: FunctionDeclaration = {
+    name: 'execute_fabric_action',
+    description: 'Execute a registered BrainK software-evolution actuator through the durable execution fabric. Supported actuators: workspace-lint, workspace-build, fabric-self-test. Each action is durably enqueued, atomically leased, executed as a real process, and persisted with exit-code/stdout/stderr evidence.',
     parameters: {
         type: Type.OBJECT,
         properties: {
-            type: { type: Type.STRING, description: 'The environment type (linux, android, browser, llm).' },
-            name: { type: Type.STRING, description: 'A custom display name for this workload instance.' }
+            assignmentId: { type: Type.STRING, description: 'Stable assignment/work ID, for example SW-12-2 or WT-BRAINK-BETA-20260928-001.' },
+            foundry: { type: Type.STRING, description: 'Owning Keddeh foundry.' },
+            sector: { type: Type.STRING, description: 'Owning sector or work lane.' },
+            actuator: { type: Type.STRING, description: 'Registered actuator: workspace-lint, workspace-build, or fabric-self-test.' },
+            parentTicket: { type: Type.STRING, description: 'Optional parent work-ticket ID.' }
         },
-        required: ['type', 'name']
+        required: ['assignmentId', 'foundry', 'sector', 'actuator']
     }
 };
-
-let activeWorkloads: any[] = [];
 
 
 app.post('/api/chat', async (req: Request, res: Response) => {
@@ -176,7 +180,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
                 contents: sessionHistory,
                 config: {
                     systemInstruction: "You are BRAINK, an advanced AI assistant operating within a highly technical cybernetic console interface. You have full access to the user's local filesystem and terminal. You can write code, run commands, deploy virtual workloads/environments (like desktops, browsers, or LLMs), and accomplish tasks directly on the host machine. You can also persist core directives or learned facts using update_evolution. Always explain what you are doing before executing tools. If a command fails, try an alternative approach. Once you finish your overall task, provide a final summary message to the user.",
-                    tools: [{ functionDeclarations: [executeBash, readFile, writeFile, updateEvolution, deployWorkload] }],
+                    tools: [{ functionDeclarations: [executeBash, readFile, writeFile, updateEvolution, executeFabricAction] }],
                     temperature: 0.2
                 }
             });
@@ -234,24 +238,30 @@ app.post('/api/chat', async (req: Request, res: Response) => {
                             }
                             writeEvolution(evo);
                             result = "Evolution memory updated successfully.";
-                        } else if (call.name === 'deploy_workload') {
-                            const newWorkload = {
-                                id: Math.random().toString(36).substring(2, 9),
-                                type: call.args.type,
-                                name: call.args.name,
-                                status: 'booting',
-                                logs: ['Initializing hypervisor bindings...', 'Allocating memory regions...']
-                            };
-                            activeWorkloads.push(newWorkload);
-                            // Simulate boot sequence
-                            setTimeout(() => {
-                                const w = activeWorkloads.find(x => x.id === newWorkload.id);
-                                if (w) {
-                                    w.status = 'running';
-                                    w.logs.push('Kernel panic averted.', 'Virtual Environment fully operational.');
-                                }
-                            }, 5000);
-                            result = `Workload deployed. ID: ${newWorkload.id}, Name: ${newWorkload.name}. It is currently booting.`;
+                        } else if (call.name === 'execute_fabric_action') {
+                            const actuator = call.args.actuator as FabricActuator;
+                            if (!['workspace-lint', 'workspace-build', 'fabric-self-test'].includes(actuator)) {
+                                throw new Error('FABRIC_ACTUATOR_NOT_BOUND');
+                            }
+                            const assignmentId = call.args.assignmentId as string;
+                            const workerId = `braink-agent:${sessionId}`;
+                            const queued = executionFabric.enqueue({
+                                assignmentId,
+                                foundry: call.args.foundry as string,
+                                sector: call.args.sector as string,
+                                actuator,
+                                parentTicket: call.args.parentTicket as string | undefined,
+                                maxAttempts: 3,
+                                retryPolicy: 'IDEMPOTENT',
+                                metadata: { source: 'agent-tool', sessionId }
+                            });
+                            const claimed = executionFabric.claim(workerId, 300000, assignmentId);
+                            if (!claimed) {
+                                result = JSON.stringify({ state: queued.state, job: queued, note: 'Job already exists but is not currently claimable.' });
+                            } else {
+                                const executed = await executionFabric.execute(claimed.id, claimed.leaseId!, workerId);
+                                result = JSON.stringify({ state: executed.state, job: executed });
+                            }
                         } else {
                             result = `Unknown function: ${call.name}`;
                         }
@@ -406,13 +416,51 @@ app.get('/api/evolution', (req: Request, res: Response) => {
     res.json(readEvolution());
 });
 
-app.get('/api/workloads', (req: Request, res: Response) => {
-    res.json(activeWorkloads);
+app.get('/api/fabric', (req: Request, res: Response) => {
+    res.json(executionFabric.snapshot());
 });
 
-app.delete('/api/workloads/:id', (req: Request, res: Response) => {
-    activeWorkloads = activeWorkloads.filter(w => w.id !== req.params.id);
-    res.json({ success: true });
+app.post('/api/fabric/dispatch', (req: Request, res: Response) => {
+    try {
+        const job = executionFabric.enqueue(req.body);
+        res.status(202).json(job);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+app.post('/api/fabric/claim', (req: Request, res: Response) => {
+    try {
+        const { workerId, leaseMs, assignmentId } = req.body || {};
+        const job = executionFabric.claim(workerId, leaseMs, assignmentId);
+        if (!job) return res.status(204).end();
+        res.json(job);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+app.post('/api/fabric/:id/heartbeat', (req: Request, res: Response) => {
+    try {
+        const { leaseId, workerId, leaseMs } = req.body || {};
+        res.json(executionFabric.heartbeat(req.params.id, leaseId, workerId, leaseMs));
+    } catch (error: any) {
+        res.status(409).json({ error: error.message });
+    }
+});
+
+app.post('/api/fabric/:id/execute', async (req: Request, res: Response) => {
+    try {
+        const { leaseId, workerId } = req.body || {};
+        res.json(await executionFabric.execute(req.params.id, leaseId, workerId));
+    } catch (error: any) {
+        res.status(409).json({ error: error.message });
+    }
+});
+
+// Compatibility read surface. This now exposes real fabric jobs rather than simulated VMs.
+app.get('/api/workloads', (req: Request, res: Response) => {
+    res.json(executionFabric.snapshot().jobs);
 });
 
 async function startServer() {
