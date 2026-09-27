@@ -172,12 +172,12 @@ export class BrainkExecutionFabric {
     });
   }
 
-  claim(workerId: string, leaseMs = MAX_LEASE_MS): FabricJob | null {
+  claim(workerId: string, leaseMs = MAX_LEASE_MS, assignmentId?: string): FabricJob | null {
     if (!workerId) throw new Error('FABRIC_WORKER_REQUIRED');
     const boundedLease = Math.max(1_000, Math.min(leaseMs, MAX_LEASE_MS));
 
     return this.mutate(store => {
-      const job = store.jobs.find(candidate => candidate.state === 'QUEUED');
+      const job = store.jobs.find(candidate => candidate.state === 'QUEUED' && (!assignmentId || candidate.assignmentId === assignmentId));
       if (!job) return null;
 
       const now = Date.now();
