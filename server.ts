@@ -420,6 +420,15 @@ app.get('/api/fabric', (req: Request, res: Response) => {
     res.json(executionFabric.snapshot());
 });
 
+app.post('/api/fabric/swarm/seed', (req: Request, res: Response) => {
+    try {
+        const result = executionFabric.seedCanonicalSwarm();
+        res.status(202).json(result);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 app.post('/api/fabric/dispatch', (req: Request, res: Response) => {
     try {
         const job = executionFabric.enqueue(req.body);
