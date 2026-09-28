@@ -1,0 +1,32 @@
+{
+  "schema": "braink.d030.local-execution-evidence.v1",
+  "recorded_at": "2026-09-28T09:38:51+09:30",
+  "actor": "GPT-5.6 Sol",
+  "source_basis": "Pasted markdown(20260928-000129).md + D-030 control-law record",
+  "execution_surface": "local container substrate",
+  "result": {
+    "status": "PASS",
+    "expiredLeaseRecovered": true,
+    "reclaimedSlot": 2,
+    "critics": [
+      "critic-a",
+      "critic-b",
+      "critic-c",
+      "critic-d"
+    ],
+    "turnState": "EXECUTION_BOUND",
+    "retriggerTarget": "replacement",
+    "fallback": "REPLACEMENT_ROUTED",
+    "executionJobState": "QUEUED",
+    "wasmResult": 42,
+    "wasmEvidenceSha256": "7e5505b564a3f2731f35fd10acb04b1c363ce725e79ce0b9a8df4bd7c02db4ee",
+    "originUptime": false,
+    "replacementUptime": true
+  },
+  "boundaries": {
+    "independent_assessment": "PENDING",
+    "github_actions_runner": "ZERO_STEP_FAILURE_BOUNDARY",
+    "production_host_deployment": "NOT_CLAIMED",
+    "public_service_deployment": "NOT_CLAIMED"
+  }
+}
