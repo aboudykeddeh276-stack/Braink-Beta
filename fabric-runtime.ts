@@ -273,6 +273,55 @@ export class BrainkExecutionFabric {
     });
   }
 
+  seedCanonicalSwarm(manifestPath = path.resolve(process.cwd(), 'braink-swarm-manifest.json')) {
+    const raw = fs.readFileSync(manifestPath, 'utf8');
+    const manifest = JSON.parse(raw);
+    if (manifest?.schema !== 'braink.swarm.manifest.v1' || !Array.isArray(manifest.assignments)) {
+      throw new Error('FABRIC_SWARM_MANIFEST_INVALID');
+    }
+
+    const accepted: FabricJob[] = [];
+    for (const assignment of manifest.assignments) {
+      if (!assignment?.workId || !assignment?.foundry || !assignment?.sector) {
+        throw new Error('FABRIC_SWARM_ASSIGNMENT_INVALID');
+      }
+
+      // The canonical swarm describes ownership and required work. It does not
+      // invent an actuator for work that has no bound execution contract.
+      // Developer-tools lanes can immediately exercise the repository build
+      // substrate; other lanes remain represented by their canonical IDs until
+      // an actuator is explicitly bound.
+      const actuator: FabricActuator | null =
+        assignment.sector === 'Developer tools' ? 'workspace-build' : null;
+
+      if (!actuator) continue;
+
+      accepted.push(this.enqueue({
+        assignmentId: assignment.workId,
+        foundry: assignment.foundry,
+        sector: assignment.sector,
+        actuator,
+        parentTicket: assignment.parentTicket,
+        maxAttempts: 3,
+        retryPolicy: 'IDEMPOTENT',
+        metadata: {
+          requiredWork: assignment.requiredWork,
+          delivery: assignment.delivery,
+          researchBasis: assignment.researchBasis,
+          canonicalManifest: path.basename(manifestPath)
+        }
+      }));
+    }
+
+    return {
+      manifestSchema: manifest.schema,
+      assignmentCount: manifest.assignments.length,
+      foundryCount: manifest.foundryCount,
+      executableJobsSeeded: accepted.length,
+      jobs: accepted
+    };
+  }
+
   snapshot() {
     const store = this.readStore();
     this.recoverExpiredLeases(store);
