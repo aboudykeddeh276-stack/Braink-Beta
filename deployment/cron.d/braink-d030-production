@@ -1,0 +1,10 @@
+# BrainK / D-030 production recovery schedule
+# Critique lease recovery every minute.
+* * * * * braink cd /srv/braink-beta && /usr/bin/psql "$DB_CONN_STR" -v ON_ERROR_STOP=1 -f deployment/sql/d030-zombie-recovery.sql >> /var/log/braink/d030-db-recovery.log 2>&1
+
+# Application-side recovery/readback every minute. This covers file-backed local fabric
+# state and emits explicit evidence instead of silently mutating state.
+* * * * * braink cd /srv/braink-beta && /usr/bin/env D030_CONTROL_STATE_PATH=/var/lib/braink/d030_control_state.json /usr/bin/npm run sweep:d030 >> /var/log/braink/d030-recovery.log 2>&1
+
+# Keep logs bounded.
+17 * * * * braink /usr/bin/find /var/log/braink -type f -name 'd030-*.log' -size +50M -exec /usr/bin/truncate -s 0 {} \;
