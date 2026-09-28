@@ -11,7 +11,8 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test:fabric": "tsx scripts/fabric-self-test.ts",
-    "verify:fabric": "npm run test:fabric && npm run lint && npm run build"
+    "verify:fabric": "npm run test:fabric && npm run sweep:d030 && npm run lint && npm run build",
+    "sweep:d030": "tsx scripts/d030-recovery-sweep.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
