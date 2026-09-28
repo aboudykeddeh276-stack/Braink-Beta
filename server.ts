@@ -11,6 +11,8 @@ import os from 'os';
 import { BrainkExecutionFabric, FabricActuator } from './fabric-runtime';
 import { compileCanonicalSkillFabric } from './skill-fabric';
 import { createSeedNode, advanceLifecycle, reconcileMirror, admitLearning, rehydrateNode, uptime } from './node-continuity';
+import { D030ControlLaw } from './d030-control-law';
+import { executeVerificationWasm } from './wasm-verifier';
 
 dotenv.config();
 
@@ -26,6 +28,11 @@ app.use(cors());
 app.use(express.json());
 
 const executionFabric = new BrainkExecutionFabric();
+const d030Control = new D030ControlLaw(process.env.D030_CONTROL_STATE_PATH || undefined, executionFabric);
+const d030SweepMs = Math.max(10_000, Number(process.env.D030_SWEEP_INTERVAL_MS || 60_000));
+setInterval(() => {
+  try { d030Control.sweepExpiredLeases(); } catch (error) { console.error('[D030_SWEEP_ERROR]', error); }
+}, d030SweepMs).unref();
 
 const dbPath = path.resolve(process.cwd(), 'braink_memory.json');
 const evolutionPath = path.resolve(process.cwd(), 'braink_evolution.json');
@@ -416,6 +423,85 @@ app.get('/api/fs', (req: Request, res: Response) => {
 
 app.get('/api/evolution', (req: Request, res: Response) => {
     res.json(readEvolution());
+});
+
+app.get('/api/d030', (req: Request, res: Response) => {
+    try {
+        res.json(d030Control.snapshot());
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/d030/task', (req: Request, res: Response) => {
+    try {
+        res.status(201).json(d030Control.createTask(req.body));
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+app.post('/api/d030/worker', (req: Request, res: Response) => {
+    try {
+        res.status(201).json(d030Control.registerWorker(req.body));
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+app.post('/api/d030/critique/claim', (req: Request, res: Response) => {
+    try {
+        const job = d030Control.claimCritique(req.body?.workerId, req.body?.leaseMs);
+        if (!job) return res.status(204).end();
+        res.json(job);
+    } catch (error: any) {
+        res.status(409).json({ error: error.message });
+    }
+});
+
+app.post('/api/d030/critique/commit', (req: Request, res: Response) => {
+    try {
+        const { taskId, slotIndex, workerId, analysis, evidence } = req.body || {};
+        res.json(d030Control.commitCritique(taskId, Number(slotIndex), workerId, analysis, evidence));
+    } catch (error: any) {
+        res.status(409).json({ error: error.message });
+    }
+});
+
+app.post('/api/d030/:taskId/determine', (req: Request, res: Response) => {
+    try {
+        const { actorId, ...payload } = req.body || {};
+        res.json(d030Control.determine(req.params.taskId, actorId, payload));
+    } catch (error: any) {
+        res.status(409).json({ error: error.message });
+    }
+});
+
+app.post('/api/d030/:taskId/retrigger', (req: Request, res: Response) => {
+    try {
+        res.status(202).json(d030Control.dispatchRetrigger(req.params.taskId, req.body?.actuator));
+    } catch (error: any) {
+        res.status(409).json({ error: error.message });
+    }
+});
+
+app.post('/api/d030/sweep', (req: Request, res: Response) => {
+    try {
+        res.json(d030Control.sweepExpiredLeases());
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/verify/wasm', async (req: Request, res: Response) => {
+    try {
+        const { moduleBase64, exportName, args } = req.body || {};
+        if (!moduleBase64) return res.status(400).json({ error: 'moduleBase64 is required' });
+        const bytes = Uint8Array.from(Buffer.from(moduleBase64, 'base64'));
+        res.json(await executeVerificationWasm(bytes, exportName, Array.isArray(args) ? args : []));
+    } catch (error: any) {
+        res.status(409).json({ error: error.message });
+    }
 });
 
 app.get('/api/fabric', (req: Request, res: Response) => {
