@@ -11,9 +11,10 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test:fabric": "tsx scripts/fabric-self-test.ts",
-    "verify:fabric": "npm run test:fabric && npm run test:d030 && npm run sweep:d030 && npm run lint && npm run build",
+    "verify:fabric": "npm run test:fabric && npm run test:d030 && npm run test:deployment && npm run sweep:d030 && npm run lint && npm run build",
     "sweep:d030": "tsx scripts/d030-recovery-sweep.ts",
-    "test:d030": "tsx scripts/d030-self-test.ts"
+    "test:d030": "tsx scripts/d030-self-test.ts",
+    "test:deployment": "tsx scripts/deployment-policy-self-test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
