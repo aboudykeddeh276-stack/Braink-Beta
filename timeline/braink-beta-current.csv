@@ -1,0 +1,6 @@
+Task_ID,Dependencies,Resource_Path,Execution_Command,Target_Host,Target_Ports,Search_Refs,Max_Memory_MB,Timeout_Sec,Max_Retries,Idempotency_Mode,Foundry,Sector,Required_Work
+TL-COMPILER,None,dynamic_timeline.py,python3 -m py_compile dynamic_timeline.py,127.0.0.1,None,None,128,30,1,NEVER,Process Mastery,Developer tools,Compile and validate the deterministic dynamic timeline kernel
+TL-FABRIC,TL-COMPILER,fabric-runtime.ts,npm run test:fabric,127.0.0.1,None,None,512,180,3,IDEMPOTENT,Server Foundry,Developer tools,Verify durable execution fabric and canonical swarm mapping
+TL-D030,TL-FABRIC,d030-control-law.ts,npm run test:d030,127.0.0.1,None,None,512,180,3,IDEMPOTENT,Agentics Foundry,Developer tools,Execute D-030 lease recovery critique determination and retrigger verification
+TL-DEPLOYMENT,TL-FABRIC,deployment/install-production-controls.sh,npm run test:deployment,127.0.0.1,None,None,256,60,1,NEVER,Server Foundry,Developer tools,Verify production recovery and network deployment invariants
+TL-BUILD,TL-D030|TL-DEPLOYMENT,package.json,npm run build,127.0.0.1,None,None,1024,300,3,IDEMPOTENT,Usable Software Foundry,Developer tools,Build the integrated Braink-Beta application
