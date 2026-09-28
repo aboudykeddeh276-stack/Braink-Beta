@@ -1,0 +1,3 @@
+# BrainK D-030 critique lease recovery sweep
+# Runs once per minute; the kernel itself enforces lease expiry and idempotent recovery.
+* * * * * braink cd /srv/braink-beta && /usr/bin/env D030_CONTROL_STATE_PATH=/var/lib/braink/d030_control_state.json /usr/bin/npm run sweep:d030 >> /var/log/braink/d030-recovery.log 2>&1
