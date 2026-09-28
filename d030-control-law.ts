@@ -134,14 +134,14 @@ export class D030ControlLaw {
     fs.renameSync(tmp, this.storePath);
   }
 
-  private withLock<T>(fn: (store: ControlStore) => T): T {
+  private withLock<T>(fn: (store: ControlStore) => T, recoverExpired = true): T {
     const started = Date.now();
     while (true) {
       try {
         const fd = fs.openSync(this.lockPath, 'wx');
         try {
           const store = this.readStore();
-          this.recoverExpiredCritiqueLeases(store);
+          if (recoverExpired) this.recoverExpiredCritiqueLeases(store);
           const result = fn(store);
           store.version += 1;
           this.writeStore(store);
@@ -363,7 +363,7 @@ export class D030ControlLaw {
       const before = store.events.length;
       this.recoverExpiredCritiqueLeases(store);
       return { recoveredEvents: store.events.length - before, version: store.version + 1 };
-    });
+    }, false);
   }
 
   snapshot() {
