@@ -9,6 +9,7 @@ import { exec } from 'child_process';
 import util from 'util';
 import os from 'os';
 import { BrainkExecutionFabric, FabricActuator } from './fabric-runtime';
+import { compileCanonicalSkillFabric } from './skill-fabric';
 
 dotenv.config();
 
@@ -418,6 +419,14 @@ app.get('/api/evolution', (req: Request, res: Response) => {
 
 app.get('/api/fabric', (req: Request, res: Response) => {
     res.json(executionFabric.snapshot());
+});
+
+app.get('/api/fabric/skills', (req: Request, res: Response) => {
+    try {
+        res.json(compileCanonicalSkillFabric());
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post('/api/fabric/swarm/seed', (req: Request, res: Response) => {
