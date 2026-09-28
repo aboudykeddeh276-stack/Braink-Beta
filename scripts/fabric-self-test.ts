@@ -89,7 +89,7 @@ async function main() {
     supporting: true,
     heartbeatAt: '2026-09-28T09:33:25+09:30'
   });
-  node = advanceLifecycle(node, 'UPTIME', {});
+  node = advanceLifecycle(node, 'UPTIME', { meshIdentity: node.meshIdentity, runtimeIdentity: node.runtimeIdentity, participationReadback: true });
   if (!uptime(node)) throw new Error('mesh-defined uptime failed');
 
   node.mirror = reconcileMirror(node.lineage, { build: 'candidate' }, { build: 'baseline' }, { review: 'pending' });
