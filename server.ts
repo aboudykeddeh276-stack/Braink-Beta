@@ -10,6 +10,7 @@ import util from 'util';
 import os from 'os';
 import { BrainkExecutionFabric, FabricActuator } from './fabric-runtime';
 import { compileCanonicalSkillFabric } from './skill-fabric';
+import { createSeedNode, advanceLifecycle, reconcileMirror, admitLearning, rehydrateNode, uptime } from './node-continuity';
 
 dotenv.config();
 
@@ -419,6 +420,53 @@ app.get('/api/evolution', (req: Request, res: Response) => {
 
 app.get('/api/fabric', (req: Request, res: Response) => {
     res.json(executionFabric.snapshot());
+});
+
+app.post('/api/node/seed', (req: Request, res: Response) => {
+    try {
+        const { seedId, lineage } = req.body || {};
+        if (!seedId || !lineage) return res.status(400).json({ error: 'seedId and lineage are required' });
+        res.status(201).json(createSeedNode(seedId, lineage));
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+app.post('/api/node/advance', (req: Request, res: Response) => {
+    try {
+        const { record, target, evidence } = req.body || {};
+        res.json(advanceLifecycle(record, target, evidence));
+    } catch (error: any) {
+        res.status(409).json({ error: error.message });
+    }
+});
+
+app.post('/api/node/mirror', (req: Request, res: Response) => {
+    try {
+        const { lineage, observed, expected, pending } = req.body || {};
+        res.json(reconcileMirror(lineage, observed || {}, expected || {}, pending || {}));
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+app.post('/api/node/learning/admit', (req: Request, res: Response) => {
+    try {
+        const { record, acceptedLearning, evidence } = req.body || {};
+        res.json(admitLearning(record, acceptedLearning || {}, evidence));
+    } catch (error: any) {
+        res.status(409).json({ error: error.message });
+    }
+});
+
+app.post('/api/node/rehydrate', (req: Request, res: Response) => {
+    try {
+        const { record, runtimeId, meshId } = req.body || {};
+        const next = rehydrateNode(record, runtimeId, meshId);
+        res.json({ record: next, uptime: uptime(next) });
+    } catch (error: any) {
+        res.status(409).json({ error: error.message });
+    }
 });
 
 app.get('/api/fabric/skills', (req: Request, res: Response) => {
