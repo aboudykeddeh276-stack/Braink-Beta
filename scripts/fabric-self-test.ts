@@ -2,6 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { BrainkExecutionFabric } from '../fabric-runtime';
+import { compileCanonicalSkillFabric, EXECUTION_MANDATE, FABRIC_STAGES } from '../skill-fabric';
 
 async function main() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'braink-fabric-test-'));
@@ -54,6 +55,18 @@ async function main() {
     throw new Error('unbound lane was incorrectly materialised');
   }
 
+  const skillFabric = compileCanonicalSkillFabric(path.resolve(process.cwd(), 'braink-swarm-manifest.json'));
+  if (skillFabric.canonicalAssignments !== 72) throw new Error('skill fabric assignment count mismatch');
+  if (skillFabric.canonicalFoundries !== 18) throw new Error('skill fabric foundry count mismatch');
+  if (skillFabric.stageOrder.length !== FABRIC_STAGES.length) throw new Error('skill fabric stage count mismatch');
+  if (skillFabric.operationCount !== 72 * FABRIC_STAGES.length) throw new Error(`skill fabric operation count mismatch: ${skillFabric.operationCount}`);
+  if (!skillFabric.operations.every(operation => operation.mandate === EXECUTION_MANDATE)) {
+    throw new Error('skill fabric mandate drift');
+  }
+  if (!skillFabric.operations.every(operation => operation.observer !== operation.verifier)) {
+    throw new Error('skill fabric self-verification');
+  }
+
   const snapshot = fabric.snapshot();
   if (snapshot.jobs.length !== 1) throw new Error('unexpected single-job test count');
 
@@ -71,6 +84,14 @@ async function main() {
       executableJobs: swarmSnapshot.jobs.length,
       uniqueFoundries: new Set(swarmSnapshot.jobs.map(job => job.foundry)).size,
       idempotentReseed: seed2.executableJobsSeeded === 18 && swarmSnapshot.jobs.length === 18
+    },
+    skillFabricTest: {
+      stages: skillFabric.stageOrder.length,
+      operations: skillFabric.operationCount,
+      expectedOperations: 72 * FABRIC_STAGES.length,
+      mandateStable: skillFabric.operations.every(operation => operation.mandate === EXECUTION_MANDATE),
+      independentVerifierRefs: skillFabric.operations.every(operation => operation.observer !== operation.verifier),
+      digest: skillFabric.fabricDigest
     }
   }));
 }
