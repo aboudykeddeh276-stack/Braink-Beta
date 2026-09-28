@@ -3,6 +3,7 @@ import os from 'os';
 import path from 'path';
 import { BrainkExecutionFabric } from '../fabric-runtime';
 import { compileCanonicalSkillFabric, EXECUTION_MANDATE, FABRIC_STAGES } from '../skill-fabric';
+import { createSeedNode, advanceLifecycle, reconcileMirror, admitLearning, rehydrateNode, uptime } from '../node-continuity';
 
 async function main() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'braink-fabric-test-'));
@@ -67,6 +68,38 @@ async function main() {
     throw new Error('skill fabric self-verification');
   }
 
+  const baseLineage = {
+    provenance: ['source://Pasted markdown(20260928-000129).md'],
+    history: [],
+    evidence: [],
+    relations: [],
+    learnedState: {},
+    priorTransitions: []
+  };
+  let node = createSeedNode('seed://self-test', baseLineage);
+  node = advanceLifecycle(node, 'SERVER_LINEAGE_LAUNCH', { launch: 'server-lineage' });
+  node = advanceLifecycle(node, 'VFS_MOUNT', { vfsRoot: '/vfs/self-test' });
+  node = advanceLifecycle(node, 'COMPILE', { compiler: 'tsx' });
+  node = advanceLifecycle(node, 'ASSEMBLE', { artifact: 'braink-beta' });
+  node = advanceLifecycle(node, 'RUNTIME', { runtimeId: 'runtime://self-test/1', incarnation: 1 });
+  node = advanceLifecycle(node, 'MESH_SUBSCRIPTION', {
+    meshId: 'mesh://self-test',
+    registered: true,
+    subscribed: true,
+    supporting: true,
+    heartbeatAt: '2026-09-28T09:33:25+09:30'
+  });
+  node = advanceLifecycle(node, 'UPTIME', {});
+  if (!uptime(node)) throw new Error('mesh-defined uptime failed');
+
+  node.mirror = reconcileMirror(node.lineage, { build: 'candidate' }, { build: 'baseline' }, { review: 'pending' });
+  if (!node.mirror.delta.build) throw new Error('mirror delta missing');
+  const learned = admitLearning(node, { buildState: 'candidate' }, { report: 'self-test-evidence' });
+  if (learned.mirror !== null) throw new Error('admitted learning did not clear mirror');
+  const rehydrated = rehydrateNode(learned, 'runtime://self-test/2', 'mesh://self-test');
+  if (rehydrated.runtimeIdentity?.incarnation !== 2) throw new Error('runtime incarnation did not advance');
+  if (uptime(rehydrated)) throw new Error('rehydrated runtime incorrectly inferred uptime before mesh participation');
+
   const snapshot = fabric.snapshot();
   if (snapshot.jobs.length !== 1) throw new Error('unexpected single-job test count');
 
@@ -92,6 +125,15 @@ async function main() {
       mandateStable: skillFabric.operations.every(operation => operation.mandate === EXECUTION_MANDATE),
       independentVerifierRefs: skillFabric.operations.every(operation => operation.observer !== operation.verifier),
       digest: skillFabric.fabricDigest
+    },
+    nodeContinuityTest: {
+      lifecycle: node.lifecycleState,
+      uptime: uptime(node),
+      learningRetained: learned.lineage.learnedState.buildState === 'candidate',
+      mirrorClearedAfterAdmission: learned.mirror === null,
+      rehydratedIncarnation: rehydrated.runtimeIdentity?.incarnation,
+      rehydratedUptimeBeforeMesh: uptime(rehydrated),
+      identityPreserved: learned.nodeIdentity.seedId === rehydrated.nodeIdentity.seedId
     }
   }));
 }
