@@ -1,0 +1,4 @@
+# Runtime dependencies for workspace_control_plane/.
+# This repo's primary stack is TypeScript/Vite (see package.json); this file
+# only covers the standalone Python package under workspace_control_plane/.
+pydantic>=2,<3
